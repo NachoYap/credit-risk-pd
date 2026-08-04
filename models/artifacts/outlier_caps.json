@@ -1,0 +1,586 @@
+{
+  "CNT_CHILDREN": [
+    0.0,
+    3.0
+  ],
+  "AMT_INCOME_TOTAL": [
+    45000.0,
+    630000.0
+  ],
+  "AMT_CREDIT": [
+    62361.0,
+    2013840.0
+  ],
+  "AMT_ANNUITY": [
+    5274.0,
+    79758.0
+  ],
+  "AMT_GOODS_PRICE": [
+    54000.0,
+    1800000.0
+  ],
+  "REGION_POPULATION_RELATIVE": [
+    0.002042,
+    0.072508
+  ],
+  "DAYS_BIRTH": [
+    -24711.965,
+    -8080.0
+  ],
+  "DAYS_EMPLOYED": [
+    -12256.0,
+    365243.0
+  ],
+  "DAYS_REGISTRATION": [
+    -14757.93,
+    -20.0
+  ],
+  "DAYS_ID_PUBLISH": [
+    -5669.965,
+    -25.0
+  ],
+  "OWN_CAR_AGE": [
+    0.0,
+    65.0
+  ],
+  "FLAG_EMP_PHONE": [
+    0.0,
+    1.0
+  ],
+  "FLAG_WORK_PHONE": [
+    0.0,
+    1.0
+  ],
+  "FLAG_PHONE": [
+    0.0,
+    1.0
+  ],
+  "FLAG_EMAIL": [
+    0.0,
+    1.0
+  ],
+  "CNT_FAM_MEMBERS": [
+    1.0,
+    5.0
+  ],
+  "REGION_RATING_CLIENT": [
+    1.0,
+    3.0
+  ],
+  "REGION_RATING_CLIENT_W_CITY": [
+    1.0,
+    3.0
+  ],
+  "HOUR_APPR_PROCESS_START": [
+    3.0,
+    20.0
+  ],
+  "REG_REGION_NOT_LIVE_REGION": [
+    0.0,
+    1.0
+  ],
+  "REG_REGION_NOT_WORK_REGION": [
+    0.0,
+    1.0
+  ],
+  "LIVE_REGION_NOT_WORK_REGION": [
+    0.0,
+    1.0
+  ],
+  "REG_CITY_NOT_LIVE_CITY": [
+    0.0,
+    1.0
+  ],
+  "REG_CITY_NOT_WORK_CITY": [
+    0.0,
+    1.0
+  ],
+  "LIVE_CITY_NOT_WORK_CITY": [
+    0.0,
+    1.0
+  ],
+  "EXT_SOURCE_1": [
+    0.06323760093576837,
+    0.9039964400282987
+  ],
+  "EXT_SOURCE_2": [
+    0.01314473749988342,
+    0.7910591742102435
+  ],
+  "EXT_SOURCE_3": [
+    0.0392377150720961,
+    0.8463780633178121
+  ],
+  "APARTMENTS_AVG": [
+    0.0,
+    0.637725
+  ],
+  "BASEMENTAREA_AVG": [
+    0.0,
+    0.4845
+  ],
+  "YEARS_BEGINEXPLUATATION_AVG": [
+    0.918,
+    0.9995
+  ],
+  "YEARS_BUILD_AVG": [
+    0.3064,
+    0.9932
+  ],
+  "COMMONAREA_AVG": [
+    0.0,
+    0.4878260000000053
+  ],
+  "ELEVATORS_AVG": [
+    0.0,
+    0.72
+  ],
+  "ENTRANCES_AVG": [
+    0.0345,
+    0.6207
+  ],
+  "FLOORSMAX_AVG": [
+    0.0,
+    0.75
+  ],
+  "FLOORSMIN_AVG": [
+    0.0,
+    0.75
+  ],
+  "LANDAREA_AVG": [
+    0.0,
+    0.4972
+  ],
+  "LIVINGAPARTMENTS_AVG": [
+    0.0008,
+    0.541123999999999
+  ],
+  "LIVINGAREA_AVG": [
+    0.0014,
+    0.6607
+  ],
+  "NONLIVINGAPARTMENTS_AVG": [
+    0.0,
+    0.2548
+  ],
+  "NONLIVINGAREA_AVG": [
+    0.0,
+    0.4436680000000051
+  ],
+  "APARTMENTS_MODE": [
+    0.0,
+    0.6429
+  ],
+  "BASEMENTAREA_MODE": [
+    0.0,
+    0.49628800000000045
+  ],
+  "YEARS_BEGINEXPLUATATION_MODE": [
+    0.917245,
+    0.9995
+  ],
+  "YEARS_BUILD_MODE": [
+    0.3336,
+    0.9935
+  ],
+  "COMMONAREA_MODE": [
+    0.0,
+    0.4772
+  ],
+  "ELEVATORS_MODE": [
+    0.0,
+    0.725
+  ],
+  "ENTRANCES_MODE": [
+    0.0345,
+    0.6207
+  ],
+  "FLOORSMAX_MODE": [
+    0.0,
+    0.7083
+  ],
+  "FLOORSMIN_MODE": [
+    0.0,
+    0.7083
+  ],
+  "LANDAREA_MODE": [
+    0.0,
+    0.5019779999999999
+  ],
+  "LIVINGAPARTMENTS_MODE": [
+    0.0,
+    0.5827039999999979
+  ],
+  "LIVINGAREA_MODE": [
+    0.0011,
+    0.6698
+  ],
+  "NONLIVINGAPARTMENTS_MODE": [
+    0.0,
+    0.2296
+  ],
+  "NONLIVINGAREA_MODE": [
+    0.0,
+    0.4482255000000019
+  ],
+  "APARTMENTS_MEDI": [
+    0.0,
+    0.6449874999999999
+  ],
+  "BASEMENTAREA_MEDI": [
+    0.0,
+    0.4832
+  ],
+  "YEARS_BEGINEXPLUATATION_MEDI": [
+    0.9235,
+    0.9995
+  ],
+  "YEARS_BUILD_MEDI": [
+    0.3157,
+    0.9933
+  ],
+  "COMMONAREA_MEDI": [
+    0.0,
+    0.4909
+  ],
+  "ELEVATORS_MEDI": [
+    0.0,
+    0.72
+  ],
+  "ENTRANCES_MEDI": [
+    0.0345,
+    0.6207
+  ],
+  "FLOORSMAX_MEDI": [
+    0.0,
+    0.75
+  ],
+  "FLOORSMIN_MEDI": [
+    0.0,
+    0.75
+  ],
+  "LANDAREA_MEDI": [
+    0.0,
+    0.5059779999999999
+  ],
+  "LIVINGAPARTMENTS_MEDI": [
+    0.0009,
+    0.5489999999999999
+  ],
+  "LIVINGAREA_MEDI": [
+    0.0014,
+    0.6729
+  ],
+  "NONLIVINGAPARTMENTS_MEDI": [
+    0.0,
+    0.2523
+  ],
+  "NONLIVINGAREA_MEDI": [
+    0.0,
+    0.4511
+  ],
+  "TOTALAREA_MODE": [
+    0.0008,
+    0.622
+  ],
+  "OBS_30_CNT_SOCIAL_CIRCLE": [
+    0.0,
+    12.0
+  ],
+  "DEF_30_CNT_SOCIAL_CIRCLE": [
+    0.0,
+    2.0
+  ],
+  "OBS_60_CNT_SOCIAL_CIRCLE": [
+    0.0,
+    12.0
+  ],
+  "DEF_60_CNT_SOCIAL_CIRCLE": [
+    0.0,
+    2.0
+  ],
+  "DAYS_LAST_PHONE_CHANGE": [
+    -3298.0,
+    0.0
+  ],
+  "FLAG_DOCUMENT_3": [
+    0.0,
+    1.0
+  ],
+  "FLAG_DOCUMENT_5": [
+    0.0,
+    1.0
+  ],
+  "FLAG_DOCUMENT_6": [
+    0.0,
+    1.0
+  ],
+  "FLAG_DOCUMENT_8": [
+    0.0,
+    1.0
+  ],
+  "FLAG_DOCUMENT_16": [
+    0.0,
+    1.0
+  ],
+  "FLAG_DOCUMENT_18": [
+    0.0,
+    1.0
+  ],
+  "AMT_REQ_CREDIT_BUREAU_HOUR": [
+    0.0,
+    1.0
+  ],
+  "AMT_REQ_CREDIT_BUREAU_DAY": [
+    0.0,
+    1.0
+  ],
+  "AMT_REQ_CREDIT_BUREAU_WEEK": [
+    0.0,
+    1.0
+  ],
+  "AMT_REQ_CREDIT_BUREAU_MON": [
+    0.0,
+    6.0
+  ],
+  "AMT_REQ_CREDIT_BUREAU_QRT": [
+    0.0,
+    3.0
+  ],
+  "AMT_REQ_CREDIT_BUREAU_YEAR": [
+    0.0,
+    8.0
+  ],
+  "FLAG_EMPLOYED_ANOMALY": [
+    0.0,
+    1.0
+  ],
+  "DAYS_EMPLOYED_CLEAN": [
+    -12536.68,
+    -97.0
+  ],
+  "AGE_YEARS": [
+    22.136986301369863,
+    67.70401369863012
+  ],
+  "YEARS_EMPLOYED": [
+    0.26575342465753427,
+    34.347068493150665
+  ],
+  "CREDIT_INCOME_RATIO": [
+    0.48514285714285715,
+    14.84435319785682
+  ],
+  "ANNUITY_INCOME_RATIO": [
+    0.03287094805757706,
+    0.5519333333333334
+  ],
+  "CREDIT_TERM": [
+    8.3901571301512,
+    37.90750568612585
+  ],
+  "GOODS_CREDIT_RATIO": [
+    0.6544502617801047,
+    1.0
+  ],
+  "INCOME_PER_PERSON": [
+    15750.0,
+    405000.0
+  ],
+  "EXT_MEAN": [
+    0.06894668200658047,
+    0.7867023693675995
+  ],
+  "EXT_MIN": [
+    0.0045733191248793275,
+    0.7655364783362267
+  ],
+  "EXT_MAX": [
+    0.07672613834895246,
+    0.8868309202428448
+  ],
+  "EXT_STD": [
+    0.0018074595176028943,
+    0.4603785848667106
+  ],
+  "EXT_SOURCE_MISSING_COUNT": [
+    0.0,
+    2.0
+  ],
+  "bureau_n_credits": [
+    1.0,
+    23.0
+  ],
+  "bureau_active_ratio": [
+    0.0,
+    1.0
+  ],
+  "bureau_max_overdue": [
+    0.0,
+    126501.77249999871
+  ],
+  "bureau_sum_debt": [
+    0.0,
+    9404422.464824999
+  ],
+  "bureau_sum_credit": [
+    6750.0,
+    18110166.012449987
+  ],
+  "bureau_avg_days_credit": [
+    -2765.0924999999997,
+    -52.0
+  ],
+  "bureau_overdue_current": [
+    0.0,
+    418.5
+  ],
+  "bureau_max_dpd": [
+    0.0,
+    60.0
+  ],
+  "bureau_n_dpd_credits": [
+    0.0,
+    1.0
+  ],
+  "bureau_dpd_rate": [
+    0.0,
+    0.3593959222380329
+  ],
+  "bureau_worst_status_rank": [
+    -1.0,
+    5.0
+  ],
+  "bureau_recent_status_rank": [
+    -1.0,
+    0.8
+  ],
+  "bureau_debt_credit_ratio": [
+    0.0,
+    1.0078286034482753
+  ],
+  "prev_n_applications": [
+    1.0,
+    23.0
+  ],
+  "prev_avg_credit": [
+    13945.5,
+    949861.3264031231
+  ],
+  "prev_max_days_decision": [
+    141.0,
+    2912.0
+  ],
+  "prev_avg_days_decision": [
+    105.0,
+    2749.0
+  ],
+  "prev_days_since_last_application": [
+    3.0,
+    2729.0
+  ],
+  "prev_refusal_rate": [
+    0.0,
+    0.8
+  ],
+  "prev_approval_rate": [
+    0.09523809523809523,
+    1.0
+  ],
+  "pos_n_records": [
+    3.0,
+    131.0
+  ],
+  "pos_avg_dpd": [
+    0.0,
+    227.90968318855428
+  ],
+  "pos_max_dpd": [
+    0.0,
+    981.0
+  ],
+  "pos_dpd_rate": [
+    0.0,
+    0.6071428571428571
+  ],
+  "pos_completion_rate": [
+    0.0,
+    0.4
+  ],
+  "inst_n_payments": [
+    3.0,
+    208.0
+  ],
+  "inst_max_days_late": [
+    0.0,
+    791.4200000000128
+  ],
+  "inst_avg_days_late": [
+    0.0,
+    27.355072463768337
+  ],
+  "inst_late_rate": [
+    0.0,
+    0.56
+  ],
+  "inst_shortfall_sum": [
+    0.0,
+    533470.6709999975
+  ],
+  "inst_instalment_sum": [
+    17984.3076,
+    4886875.449449955
+  ],
+  "inst_payment_shortfall_ratio": [
+    0.0,
+    0.39628546157336064
+  ],
+  "inst_late_rate_last6": [
+    0.0,
+    0.6666666666666666
+  ],
+  "cc_avg_balance": [
+    0.0,
+    622732.4496076682
+  ],
+  "cc_max_balance": [
+    0.0,
+    890015.0242499989
+  ],
+  "cc_avg_utilization": [
+    0.0,
+    1.0254004231666667
+  ],
+  "cc_max_utilization": [
+    0.0,
+    1.1958514333333334
+  ],
+  "cc_avg_payment_ratio": [
+    0.12430320000000003,
+    186.33577825016704
+  ],
+  "cc_avg_cash_advance_ratio": [
+    0.0,
+    1.0
+  ],
+  "cc_dpd_rate": [
+    0.0,
+    0.6276595744680851
+  ],
+  "cc_max_dpd": [
+    0.0,
+    1401.0
+  ],
+  "cc_utilization_trend": [
+    -0.14803848074999998,
+    0.194942756249999
+  ],
+  "FLAG_OWN_CAR_AGE_MISSING": [
+    0.0,
+    1.0
+  ],
+  "BUILDING_INFO_MISSING_COUNT": [
+    0.0,
+    14.0
+  ]
+}

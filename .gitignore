@@ -1,2 +1,6 @@
 .claude/
+!.claude/skills/
 data/data_raw/
+data/data_processed/
+__pycache__/
+*.pyc
