@@ -50,9 +50,6 @@ POS_CASH, installments, and credit_card auxiliary tables live in
   `.claude/skills/credit-risk-modelling/references/{lgd,ead}.md`.
 - **`app/` and `tests/` are empty** — no serving layer or unit tests exist,
   including for `src/features.py`.
-- **`Dockerfile` is empty.**
-- **No project-local venv** — packages are installed in the global Python 3.12
-  interpreter, which other projects on this machine also use.
 
 ## Environment
 
