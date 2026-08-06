@@ -171,11 +171,28 @@ with open(ARTIFACT_DIR / "feature_cols.json", "w") as f:
 # ---------------------------------------------------------------------------
 # 6. Save GBM-ready feature sets (native categoricals, NaNs kept as-is)
 # ---------------------------------------------------------------------------
+# Categorical dtype categories are fit on train only, then applied as-is to
+# valid/test (same fit-on-train-only discipline as outlier caps / WoE bins).
+# Casting each split's categoricals independently would let pandas infer a
+# different category->code mapping per split whenever the set of unique values
+# differs (e.g. a rare category present in train but absent from valid/test) --
+# XGBoost's enable_categorical path splits on those integer codes, so a
+# per-split mismatch silently corrupts predictions for every row whose
+# category's code shifted. Unseen categories in valid/test become NaN, which
+# XGBoost handles natively as missing.
 print("\nSaving raw/capped feature sets (GBM-ready)...")
-for name, df_ in (("train", train_feat), ("valid", valid_feat), ("test", test_feat)):
+train_out = train_feat.copy()
+train_cat_categories = {}
+for c in cat_cols:
+    train_out[c] = train_out[c].astype("category")
+    train_cat_categories[c] = train_out[c].cat.categories
+train_out.to_parquet(OUT_DIR / "train_features.parquet", index=False)
+print(f"  train_features.parquet -> {train_out.shape}")
+
+for name, df_ in (("valid", valid_feat), ("test", test_feat)):
     out = df_.copy()
     for c in cat_cols:
-        out[c] = out[c].astype("category")
+        out[c] = pd.Categorical(out[c], categories=train_cat_categories[c])
     out.to_parquet(OUT_DIR / f"{name}_features.parquet", index=False)
     print(f"  {name}_features.parquet -> {out.shape}")
 

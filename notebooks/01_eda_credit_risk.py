@@ -792,7 +792,7 @@ print(f"  credit_card_balance shape : {cc.shape}")
 cc["UTILIZATION"] = (cc["AMT_BALANCE"]
                      / cc["AMT_CREDIT_LIMIT_ACTUAL"].replace(0, np.nan))
 cc["PAYMENT_RATIO"] = (cc["AMT_PAYMENT_CURRENT"]
-                        / cc["AMT_INSTALMENT"].replace(0, np.nan))
+                        / cc["AMT_INST_MIN_REGULARITY"].replace(0, np.nan))
 
 cc_agg = cc.groupby("SK_ID_CURR").agg(
     cc_n_months          =("MONTHS_BALANCE", "count"),
@@ -855,7 +855,8 @@ if SCORECARDPY_AVAILABLE:
     woe_df = app[woe_cols + ["TARGET"]].copy()
 
     bins = sc.woebin(woe_df, y="TARGET", x=woe_cols,
-                     positive="bad|1", print_info=False)
+                     positive="bad|1", print_info=False,
+                     no_cores=1, check_cate_num=False)
 
     # IV summary
     iv_vals = {feat: bins[feat]["bin_iv"].sum() for feat in bins}

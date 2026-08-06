@@ -5,7 +5,12 @@ import pandas as pd
 
 EXT_SOURCE_COLS = ["EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3"]
 
-BUREAU_BALANCE_STATUS_RANK = {"C": -1, "X": -1, "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5}
+# "X" (status unknown that month) is deliberately left unmapped (-> NaN), not
+# folded into "C" (confirmed closed, clean) — the two are opposite ends of
+# information quality, and 24.8% of bureau tradelines report "X" as their most
+# recent status, so conflating them would bias bb_recent_status_rank optimistic
+# for a quarter of all credit lines.
+BUREAU_BALANCE_STATUS_RANK = {"C": -1, "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5}
 
 
 def clean_application(app: pd.DataFrame) -> pd.DataFrame:

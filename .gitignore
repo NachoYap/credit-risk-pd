@@ -2,5 +2,6 @@
 !.claude/skills/
 data/data_raw/
 data/data_processed/
+submissions/
 __pycache__/
 *.pyc
