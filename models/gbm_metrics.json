@@ -1,7 +1,15 @@
 {
-  "auc":0.7769967472,
-  "gini":0.5539934945,
-  "ks":0.4190331899,
-  "psi":0.0001945651,
-  "best_iteration":391.0
+  "auc":0.7790580581,
+  "gini":0.5581161163,
+  "ks":0.4177701087,
+  "psi":0.0001861758,
+  "best_iteration":358.0,
+  "max_depth":4.0,
+  "learning_rate":0.08,
+  "subsample":0.9,
+  "colsample_bytree":0.6,
+  "min_child_weight":10.0,
+  "gamma":1.0,
+  "reg_alpha":0.0,
+  "reg_lambda":1.5
 }

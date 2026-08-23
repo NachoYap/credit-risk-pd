@@ -22,6 +22,7 @@ warnings.filterwarnings("ignore")
 
 import sys
 import json
+import time
 import pickle
 from pathlib import Path
 
@@ -31,7 +32,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import xgboost as xgb
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, ParameterSampler
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import roc_auc_score, roc_curve
 from scipy.stats import ks_2samp
@@ -117,14 +118,64 @@ scale_pos_weight = (1 - y_fit.mean()) / y_fit.mean()
 print(f"scale_pos_weight: {scale_pos_weight:.2f}")
 
 # ---------------------------------------------------------------------------
-# 2. Train with early stopping
+# 2. Hyperparameter search — random search, early-stopped on the ES fold
+# ---------------------------------------------------------------------------
+# A full k-fold grid/random search would need a separate fit (with its own
+# early stopping) per fold per candidate -- too slow at 157k rows x 177
+# features. Reuse the ES fold already carved out for the final model's early
+# stopping instead: one fit per candidate, ranked by its early-stopped AUC on
+# that fold. n_estimators/early_stopping_rounds are capped below the final
+# model's budget purely to keep each candidate's fit fast; the winning
+# candidate's other hyperparameters carry over to the full run.
+PARAM_DIST = {
+    "max_depth": [3, 4, 5, 6],
+    "learning_rate": [0.03, 0.05, 0.08, 0.1],
+    "subsample": [0.7, 0.8, 0.9, 1.0],
+    "colsample_bytree": [0.6, 0.8, 1.0],
+    "min_child_weight": [1, 3, 5, 10],
+    "gamma": [0, 0.1, 0.5, 1.0],
+    "reg_alpha": [0, 0.1, 1.0],
+    "reg_lambda": [1.0, 1.5, 3.0],
+}
+N_TRIALS = 25
+SEARCH_N_ESTIMATORS = 300
+SEARCH_EARLY_STOP = 20
+
+print(f"\nRandom search: {N_TRIALS} candidates, n_estimators capped at "
+      f"{SEARCH_N_ESTIMATORS}, early-stopped on the ES fold...")
+t0 = time.time()
+search_results = []
+for i, params in enumerate(ParameterSampler(PARAM_DIST, n_iter=N_TRIALS, random_state=SEED), 1):
+    trial = xgb.XGBClassifier(
+        n_estimators=SEARCH_N_ESTIMATORS,
+        scale_pos_weight=scale_pos_weight,
+        monotone_constraints=monotone,
+        enable_categorical=True,
+        tree_method="hist",
+        eval_metric="auc",
+        early_stopping_rounds=SEARCH_EARLY_STOP,
+        random_state=SEED,
+        **params,
+    )
+    trial.fit(X_fit, y_fit, eval_set=[(X_es, y_es)], verbose=False)
+    search_results.append({**params, "best_iteration": trial.best_iteration, "es_auc": trial.best_score})
+    print(f"  [{i:>2}/{N_TRIALS}] ES AUC={trial.best_score:.4f}  iter={trial.best_iteration:>3}  {params}")
+
+search_df = pd.DataFrame(search_results).sort_values("es_auc", ascending=False)
+best_params = search_df.iloc[0][list(PARAM_DIST)].to_dict()
+best_params["max_depth"] = int(best_params["max_depth"])
+best_params["min_child_weight"] = int(best_params["min_child_weight"])
+print(f"\nSearch complete in {time.time() - t0:.0f}s")
+print(f"Best candidate (ES AUC={search_df.iloc[0]['es_auc']:.4f}): {best_params}")
+
+with open(ARTIFACT_DIR / "xgb_hparam_search.json", "w") as f:
+    json.dump({"best_params": best_params, "trials": search_results}, f, indent=2, default=float)
+
+# ---------------------------------------------------------------------------
+# 3. Train final model with the winning hyperparameters, early stopping
 # ---------------------------------------------------------------------------
 model = xgb.XGBClassifier(
     n_estimators=500,
-    max_depth=4,
-    learning_rate=0.05,
-    subsample=0.8,
-    colsample_bytree=0.8,
     scale_pos_weight=scale_pos_weight,
     monotone_constraints=monotone,
     enable_categorical=True,
@@ -132,14 +183,15 @@ model = xgb.XGBClassifier(
     eval_metric="auc",
     early_stopping_rounds=30,
     random_state=SEED,
+    **best_params,
 )
 
-print("\nTraining with early stopping (eval on early-stop fold)...")
+print("\nTraining final model with early stopping (eval on early-stop fold)...")
 model.fit(X_fit, y_fit, eval_set=[(X_es, y_es)], verbose=False)
 print(f"Best iteration: {model.best_iteration}")
 
 # ---------------------------------------------------------------------------
-# 3. Recalibrate on the calibration fold (raw tree-ensemble probabilities
+# 4. Recalibrate on the calibration fold (raw tree-ensemble probabilities
 #    are typically miscalibrated at the tails, independent of scale_pos_weight)
 # ---------------------------------------------------------------------------
 print("\nCalibrating (isotonic) on calib fold...")
@@ -147,7 +199,7 @@ calibrated = CalibratedClassifierCV(model, method="isotonic", cv="prefit")
 calibrated.fit(X_calib, y_calib)
 
 # ---------------------------------------------------------------------------
-# 4. Validation — on the fully held-out `valid` split only
+# 5. Validation — on the fully held-out `valid` split only
 # ---------------------------------------------------------------------------
 fit_scores_raw = model.predict_proba(X_fit)[:, 1]
 valid_pd = np.clip(calibrated.predict_proba(X_valid)[:, 1], PD_FLOOR, 1 - PD_FLOOR)
@@ -187,7 +239,7 @@ plt.savefig(FIG_DIR / "26_gbm_validation.png", dpi=150)
 plt.close()
 
 # ---------------------------------------------------------------------------
-# 5. SHAP explainability
+# 6. SHAP explainability
 # ---------------------------------------------------------------------------
 print("\nComputing SHAP values on a 5,000-row sample of valid...")
 shap_sample = X_valid.sample(n=min(5000, len(X_valid)), random_state=SEED)
@@ -216,7 +268,7 @@ plt.savefig(FIG_DIR / "28_shap_dependence.png", dpi=150, bbox_inches="tight")
 plt.close()
 
 # ---------------------------------------------------------------------------
-# 6. Compare against the baseline
+# 7. Compare against the baseline
 # ---------------------------------------------------------------------------
 baseline_path = MODEL_DIR / "baseline_metrics.json"
 if baseline_path.exists():
@@ -232,14 +284,15 @@ else:
     print("\nNo baseline_metrics.json found — run 03_baseline_logistic_regression.py first for comparison.")
 
 # ---------------------------------------------------------------------------
-# 7. Save artifacts
+# 8. Save artifacts
 # ---------------------------------------------------------------------------
 with open(MODEL_DIR / "gbm_xgboost.pkl", "wb") as f:
     pickle.dump({"model": model, "calibrated": calibrated, "feature_cols": feature_cols,
-                 "cat_cols": cat_cols, "monotone_constraints": monotone}, f)
+                 "cat_cols": cat_cols, "monotone_constraints": monotone,
+                 "hyperparams": best_params}, f)
 
 metrics = {"auc": auc, "gini": gini, "ks": ks, "psi": psi_score,
-           "best_iteration": int(model.best_iteration)}
+           "best_iteration": int(model.best_iteration), **best_params}
 pd.Series(metrics).to_json(MODEL_DIR / "gbm_metrics.json", indent=2)
 
 print("\n" + "=" * 70)

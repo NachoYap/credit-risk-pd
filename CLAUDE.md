@@ -175,24 +175,46 @@ further dependency changes so this repo stops touching unrelated projects.
 
 ## Current results (internal valid split)
 
-Rerun on 2026-08-23 after the second-pass bug fixes (`bb_dpd_rate`'s
+Rerun on 2026-08-23: first after the second-pass bug fixes (`bb_dpd_rate`'s
 incomplete NaN fix, unpaid-installment coding, the `CREDIT_INCOME_RATIO`
-monotone constraint, scorecard odds anchoring, PD flooring) — these numbers
-reflect the fixed code (`02`→`03`→`04`→`05` all rerun; commit `cdc22ec`).
+monotone constraint, scorecard odds anchoring, PD flooring; commit `cdc22ec`),
+then again after adding an XGBoost hyperparameter search (commit below).
 
 | Metric | LR (WoE baseline) | XGBoost (challenger) |
 |---|---|---|
-| AUC  | 0.7651 | 0.7770 |
-| Gini | 0.5302 | 0.5540 |
-| KS   | 0.3997 | 0.4190 |
+| AUC  | 0.7651 | 0.7791 |
+| Gini | 0.5302 | 0.5581 |
+| KS   | 0.3997 | 0.4178 |
 | PSI  | 0.0002 | 0.0002 |
 
 Both calibrated (predicted PD: LR 7.98%, XGBoost 8.02%, vs true 8.07%).
-XGBoost's top SHAP drivers: `EXT_MEAN` (dominant), `ORGANIZATION_TYPE`,
-`inst_late_rate_last6`, `CREDIT_TERM`, `GOODS_CREDIT_RATIO`,
+XGBoost's tuned hyperparameters (see "Hyperparameter search" below):
+`max_depth=4, learning_rate=0.08, subsample=0.9, colsample_bytree=0.6,
+min_child_weight=10, gamma=1.0, reg_alpha=0, reg_lambda=1.5`. Top SHAP
+drivers: `EXT_MEAN` (dominant), `CREDIT_TERM`, `GOODS_CREDIT_RATIO`,
+`inst_late_rate_last6`, `EXT_MAX`, `ORGANIZATION_TYPE`,
 `bureau_debt_credit_ratio`. Kaggle submissions regenerated at
-`submissions/submission_xgboost.csv` (mean PD 7.57%) and
-`submissions/submission_logistic.csv` (mean PD 8.12%).
+`submissions/submission_xgboost.csv` (mean PD 7.51%) and
+`submissions/submission_logistic.csv` (mean PD 8.12%; LR is unaffected by the
+XGBoost search, so its submission is unchanged from the bug-fix rerun).
+
+## Hyperparameter search (XGBoost)
+
+`04_gradient_boosting_shap.py` runs a 25-candidate random search
+(`sklearn.model_selection.ParameterSampler`, fixed `random_state=42`) over
+`max_depth`, `learning_rate`, `subsample`, `colsample_bytree`,
+`min_child_weight`, `gamma`, `reg_alpha`, `reg_lambda` before the final fit.
+A full k-fold CV search would need a separate early-stopped fit per fold per
+candidate — too slow at 157k rows × 177 features — so each candidate instead
+gets one early-stopped fit against the same early-stopping (ES) fold the
+final model uses, ranked by its ES-fold AUC; `n_estimators` is capped at 300
+with `early_stopping_rounds=20` during the search (vs 500/30 for the final
+fit) purely to keep each candidate cheap. The winning candidate's other
+hyperparameters carry over to the full run. Search results (all 25 trials +
+the winner) are saved to `models/artifacts/xgb_hparam_search.json`; the
+winner is also folded into `models/gbm_metrics.json` and
+`models/gbm_xgboost.pkl`'s `hyperparams` key. Took ~15.5 min for the search
+alone (932s) on top of the final fit/calibration/SHAP steps.
 
 ## Pending / next steps
 
@@ -202,10 +224,7 @@ XGBoost's top SHAP drivers: `EXT_MEAN` (dominant), `ORGANIZATION_TYPE`,
   `.py` this session — not reconciled, since `.py` is the documented entry
   point and the notebook is large enough that Read/NotebookEdit tooling
   couldn't load it in one pass.
-- No hyperparameter search for XGBoost — currently fixed defaults
-  (depth=4, lr=0.05) matching the skill's reference values, only `n_estimators`
-  is tuned via early stopping. LightGBM is installed but untried as a second
-  challenger.
+- LightGBM is installed but untried as a second challenger.
 - LGD and EAD models not started (skill references exist at
   `.claude/skills/credit-risk-modelling/references/{lgd,ead}.md`).
 - `app/`, `tests/` are empty scaffolding — no serving layer or unit tests exist,

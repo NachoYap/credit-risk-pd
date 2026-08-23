@@ -22,24 +22,28 @@ Both `03` and `04` depend on `02`'s output but are independent of each other.
 **Two trained, calibrated models** (committed under `models/`), evaluated on
 an internal 80/20 train/valid split carved out of `application_train.csv`
 (Kaggle's `application_test.csv` has no `TARGET`, so it's feature-engineered
-but never used for metrics). Rerun 2026-08-23 after the second-pass bug fixes
-(see `CLAUDE.md`'s "Known gotchas"):
+but never used for metrics). Rerun 2026-08-23, after the second-pass bug fixes
+and an XGBoost hyperparameter search (see `CLAUDE.md`'s "Known gotchas" and
+"Hyperparameter search"):
 
 | Metric | LR (WoE baseline) | XGBoost (challenger) |
 |---|---|---|
-| AUC  | 0.7651 | 0.7770 |
-| Gini | 0.5302 | 0.5540 |
-| KS   | 0.3997 | 0.4190 |
+| AUC  | 0.7651 | 0.7791 |
+| Gini | 0.5302 | 0.5581 |
+| KS   | 0.3997 | 0.4178 |
 | PSI  | 0.0002 | 0.0002 |
 
 Both models are calibrated (predicted PD: LR 7.98%, XGBoost 8.02%, vs true
 8.07% base rate) via isotonic regression on a held-out fold — raw
 `predict_proba` from either model is not a usable PD without this step.
 `TARGET` itself is Kaggle's raw label from `application_train.csv`, used as-is
-(never derived). XGBoost's top SHAP drivers: `EXT_MEAN` (dominant),
-`ORGANIZATION_TYPE`, `inst_late_rate_last6`, `CREDIT_TERM`,
-`GOODS_CREDIT_RATIO`, `bureau_debt_credit_ratio`. Kaggle submissions
-regenerated at `submissions/submission_xgboost.csv` (mean PD 7.57%) and
+(never derived). XGBoost uses tuned hyperparameters from a 25-candidate random
+search (`max_depth=4, learning_rate=0.08, subsample=0.9, colsample_bytree=0.6,
+min_child_weight=10, gamma=1.0, reg_alpha=0, reg_lambda=1.5`) — see
+`CLAUDE.md` for the search methodology. Top SHAP drivers: `EXT_MEAN`
+(dominant), `CREDIT_TERM`, `GOODS_CREDIT_RATIO`, `inst_late_rate_last6`,
+`EXT_MAX`, `ORGANIZATION_TYPE`, `bureau_debt_credit_ratio`. Kaggle submissions
+regenerated at `submissions/submission_xgboost.csv` (mean PD 7.51%) and
 `submissions/submission_logistic.csv` (mean PD 8.12%).
 
 **Reusable feature aggregations** live in `src/features.py`, computed once and
@@ -63,9 +67,7 @@ features to both models — none are EDA-only:
 - **`notebooks/01_eda_credit_risk.ipynb`** has independently diverged from the
   `.py` version and still has bugs the `.py` had this session (e.g. a bureau
   merge-key typo) fixed — not reconciled, see `CLAUDE.md`.
-- **No hyperparameter search for XGBoost** — currently fixed defaults
-  (depth=4, lr=0.05), only `n_estimators` is tuned via early stopping.
-  LightGBM is installed but untried as a second challenger.
+- **LightGBM is installed but untried** as a second challenger.
 - **LGD and EAD models not started** — skill references exist at
   `.claude/skills/credit-risk-modelling/references/{lgd,ead}.md`.
 - **`app/` and `tests/` are empty** — no serving layer or unit tests exist,
