@@ -175,31 +175,27 @@ further dependency changes so this repo stops touching unrelated projects.
 
 ## Current results (internal valid split)
 
-**STALE as of the most recent commit** — the numbers below are from before a
-second, more thorough review pass found and fixed several more issues
-(`bb_dpd_rate`'s incomplete NaN fix, unpaid-installment coding, the
-`CREDIT_INCOME_RATIO` monotone constraint, scorecard odds anchoring, PD
-flooring). Code is fixed; `02`→`03`→`04` have not been rerun since, so
-`models/*.pkl`, `models/*_metrics.json`, and this table do not yet reflect the
-fixes. Rerun the pipeline before trusting these numbers or shipping a new
-Kaggle submission.
+Rerun on 2026-08-23 after the second-pass bug fixes (`bb_dpd_rate`'s
+incomplete NaN fix, unpaid-installment coding, the `CREDIT_INCOME_RATIO`
+monotone constraint, scorecard odds anchoring, PD flooring) — these numbers
+reflect the fixed code (`02`→`03`→`04`→`05` all rerun; commit `cdc22ec`).
 
 | Metric | LR (WoE baseline) | XGBoost (challenger) |
 |---|---|---|
-| AUC  | 0.7649 | 0.7767 |
-| Gini | 0.5298 | 0.5534 |
-| KS   | 0.3972 | 0.4178 |
+| AUC  | 0.7651 | 0.7770 |
+| Gini | 0.5302 | 0.5540 |
+| KS   | 0.3997 | 0.4190 |
 | PSI  | 0.0002 | 0.0002 |
 
-Both calibrated (predicted PD ≈8.0% vs true 8.07%). XGBoost's top SHAP drivers:
-`EXT_MEAN` (dominant), `ORGANIZATION_TYPE`, `CREDIT_TERM`, `GOODS_CREDIT_RATIO`,
-`bureau_debt_credit_ratio`, `inst_late_rate_last6`.
+Both calibrated (predicted PD: LR 7.98%, XGBoost 8.02%, vs true 8.07%).
+XGBoost's top SHAP drivers: `EXT_MEAN` (dominant), `ORGANIZATION_TYPE`,
+`inst_late_rate_last6`, `CREDIT_TERM`, `GOODS_CREDIT_RATIO`,
+`bureau_debt_credit_ratio`. Kaggle submissions regenerated at
+`submissions/submission_xgboost.csv` (mean PD 7.57%) and
+`submissions/submission_logistic.csv` (mean PD 8.12%).
 
 ## Pending / next steps
 
-- **Rerun `02` → `03` → `04` → `05`** to regenerate models/metrics/submissions
-  reflecting the fixes above — not yet done (see "Current results" staleness
-  note).
 - `notebooks/01_eda_credit_risk.ipynb` has independently diverged from the
   `.py` version (e.g. an extra `02b_missing_info_gain.png` cell not in the
   `.py`) and still has the `SK_BUREAU_ID`/`SK_ID_BUREAU` typo fixed in the

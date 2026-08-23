@@ -22,24 +22,25 @@ Both `03` and `04` depend on `02`'s output but are independent of each other.
 **Two trained, calibrated models** (committed under `models/`), evaluated on
 an internal 80/20 train/valid split carved out of `application_train.csv`
 (Kaggle's `application_test.csv` has no `TARGET`, so it's feature-engineered
-but never used for metrics). **The table below is STALE** — a round of bug
-fixes (see `CLAUDE.md`'s "Known gotchas") landed after these numbers were
-generated and the pipeline hasn't been rerun since; treat these as
-placeholders until `02`→`03`→`04` is rerun:
+but never used for metrics). Rerun 2026-08-23 after the second-pass bug fixes
+(see `CLAUDE.md`'s "Known gotchas"):
 
 | Metric | LR (WoE baseline) | XGBoost (challenger) |
 |---|---|---|
-| AUC  | 0.7649 | 0.7767 |
-| Gini | 0.5298 | 0.5534 |
-| KS   | 0.3972 | 0.4178 |
+| AUC  | 0.7651 | 0.7770 |
+| Gini | 0.5302 | 0.5540 |
+| KS   | 0.3997 | 0.4190 |
 | PSI  | 0.0002 | 0.0002 |
 
-Both models are calibrated (predicted PD ≈8.0% vs true 8.07% base rate) via
-isotonic regression on a held-out fold — raw `predict_proba` from either
-model is not a usable PD without this step. `TARGET` itself is Kaggle's raw
-label from `application_train.csv`, used as-is (never derived). XGBoost's top
-SHAP drivers: `EXT_MEAN` (dominant), `ORGANIZATION_TYPE`, `CREDIT_TERM`,
-`GOODS_CREDIT_RATIO`, `bureau_debt_credit_ratio`, `inst_late_rate_last6`.
+Both models are calibrated (predicted PD: LR 7.98%, XGBoost 8.02%, vs true
+8.07% base rate) via isotonic regression on a held-out fold — raw
+`predict_proba` from either model is not a usable PD without this step.
+`TARGET` itself is Kaggle's raw label from `application_train.csv`, used as-is
+(never derived). XGBoost's top SHAP drivers: `EXT_MEAN` (dominant),
+`ORGANIZATION_TYPE`, `inst_late_rate_last6`, `CREDIT_TERM`,
+`GOODS_CREDIT_RATIO`, `bureau_debt_credit_ratio`. Kaggle submissions
+regenerated at `submissions/submission_xgboost.csv` (mean PD 7.57%) and
+`submissions/submission_logistic.csv` (mean PD 8.12%).
 
 **Reusable feature aggregations** live in `src/features.py`, computed once and
 merged onto all splits. Every raw auxiliary table contributes surviving
@@ -59,9 +60,6 @@ features to both models — none are EDA-only:
 
 ## Pending
 
-- **Rerun `02` → `03` → `04` → `05`** to regenerate models/metrics/submissions
-  reflecting this session's bug fixes — not yet done (see the metrics table's
-  staleness note above and `CLAUDE.md`'s "Known gotchas").
 - **`notebooks/01_eda_credit_risk.ipynb`** has independently diverged from the
   `.py` version and still has bugs the `.py` had this session (e.g. a bureau
   merge-key typo) fixed — not reconciled, see `CLAUDE.md`.

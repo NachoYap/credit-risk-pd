@@ -445,7 +445,7 @@
   ],
   "bureau_dpd_rate": [
     0.0,
-    0.3593959222380329
+    0.45004916985951526
   ],
   "bureau_worst_status_rank": [
     -1.0,
@@ -521,11 +521,11 @@
   ],
   "inst_late_rate": [
     0.0,
-    0.56
+    0.5625
   ],
   "inst_shortfall_sum": [
     0.0,
-    533470.6709999975
+    536138.0869499997
   ],
   "inst_instalment_sum": [
     17984.3076,
@@ -533,7 +533,7 @@
   ],
   "inst_payment_shortfall_ratio": [
     0.0,
-    0.39628546157336064
+    0.398121530438888
   ],
   "inst_late_rate_last6": [
     0.0,
