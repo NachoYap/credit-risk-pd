@@ -22,6 +22,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import sys
+import copy
 import pickle
 from pathlib import Path
 
@@ -49,6 +50,10 @@ FIG_DIR.mkdir(exist_ok=True)
 SEED = 42
 TARGET = "TARGET"
 ID_COL = "SK_ID_CURR"
+# Isotonic calibration's lowest step can land exactly on 0.0 -- log(PD/(1-PD))
+# and PD x LGD x EAD both break on an exact 0, so floor the calibrated output
+# away from the boundary.
+PD_FLOOR = 1e-4
 
 
 def psi(expected, actual, buckets=10):
@@ -112,11 +117,16 @@ calibrated.fit(X_calib, y_calib)
 # 4. Validation — on the fully held-out `valid` split only
 # ---------------------------------------------------------------------------
 train_scores_raw = model.predict_proba(X_fit)[:, 1]
-valid_pd = calibrated.predict_proba(X_valid)[:, 1]
+valid_pd = np.clip(calibrated.predict_proba(X_valid)[:, 1], PD_FLOOR, 1 - PD_FLOOR)
 
 auc = roc_auc_score(y_valid, valid_pd)
 gini = 2 * auc - 1
 ks, _ = ks_2samp(valid_pd[y_valid == 1], valid_pd[y_valid == 0])
+# NOTE: this dataset has no out-of-time/production sample -- `fit` and `valid`
+# are two random splits of the SAME application_train.csv population, so this
+# PSI is a train-vs-valid split-stability sanity check, not a true population
+# stability test. It will be near-zero by construction and should not be read
+# as evidence of validated production stability.
 psi_score = psi(train_scores_raw, model.predict_proba(X_valid)[:, 1])
 
 print("\n" + "-" * 50)
@@ -164,7 +174,17 @@ print("\nBuilding points-based scorecard (600 pts = 1:1 odds, PDO=20)...")
 with open(ARTIFACT_DIR / "woe_bins.pkl", "rb") as f:
     bins = pickle.load(f)
 
-card = sc.scorecard(bins, model, feature_cols, points0=600, odds0=1, pdo=20)
+# `model` was fit with class_weight='balanced', so its intercept encodes a
+# ~50/50 class mix, not the true ~8% base rate -- scoring points0/odds0
+# directly off it would silently anchor "600 pts = 1:1 odds" at the wrong
+# prior. `calibrated`'s isotonic step function has no coefficients scorecardpy
+# can build points from, so correct the intercept analytically instead (King &
+# Zeng 2001 prior correction: the balanced loss makes the effective training
+# prior exactly 0.5, so the correction collapses to -log(true_prior/(1-true_prior))).
+true_prior = y_fit.mean()
+card_model = copy.deepcopy(model)
+card_model.intercept_ = model.intercept_ - np.log(true_prior / (1 - true_prior))
+card = sc.scorecard(bins, card_model, feature_cols, points0=600, odds0=1, pdo=20)
 
 train_raw = pd.read_parquet(DATA_DIR / "train_features.parquet")
 valid_raw = pd.read_parquet(DATA_DIR / "valid_features.parquet")

@@ -49,13 +49,22 @@ FIG_DIR.mkdir(exist_ok=True)
 SEED = 42
 TARGET = "TARGET"
 ID_COL = "SK_ID_CURR"
+# Isotonic calibration's lowest step can land exactly on 0.0 (confirmed: 24
+# valid rows / 34 Kaggle-test rows) -- log(PD/(1-PD)) and PD x LGD x EAD both
+# break on an exact 0, so floor the calibrated output away from the boundary.
+PD_FLOOR = 1e-4
 
 # Known risk direction from the EDA (01) and feature-engineering rationale (02).
 # +1: higher value -> higher PD.  -1: higher value -> lower PD.
+# CREDIT_INCOME_RATIO deliberately excluded: empirical bad-rate-by-decile on
+# train_features.parquet is hump-shaped, not monotonic ([6.84%, 7.80%, 8.09%,
+# 9.16%, 8.68%, 9.14%, 8.71%, 7.79%, 7.39%, 7.14%]), so a +1 constraint
+# forces the model to over-penalise the highest-leverage (and empirically
+# lower-risk) applicants -- no direction is correct here, so leave unconstrained.
 MONOTONE_DIRECTIONS = {
     "EXT_SOURCE_1": -1, "EXT_SOURCE_2": -1, "EXT_SOURCE_3": -1,
     "EXT_MEAN": -1, "EXT_MIN": -1, "EXT_MAX": -1,
-    "CREDIT_INCOME_RATIO": 1, "ANNUITY_INCOME_RATIO": 1,
+    "ANNUITY_INCOME_RATIO": 1,
     "AGE_YEARS": -1, "YEARS_EMPLOYED": -1,
     "bureau_dpd_rate": 1, "bureau_max_dpd": 1, "bureau_worst_status_rank": 1,
     "inst_late_rate": 1, "inst_late_rate_last6": 1,
@@ -141,11 +150,16 @@ calibrated.fit(X_calib, y_calib)
 # 4. Validation — on the fully held-out `valid` split only
 # ---------------------------------------------------------------------------
 fit_scores_raw = model.predict_proba(X_fit)[:, 1]
-valid_pd = calibrated.predict_proba(X_valid)[:, 1]
+valid_pd = np.clip(calibrated.predict_proba(X_valid)[:, 1], PD_FLOOR, 1 - PD_FLOOR)
 
 auc = roc_auc_score(y_valid, valid_pd)
 gini = 2 * auc - 1
 ks, _ = ks_2samp(valid_pd[y_valid == 1], valid_pd[y_valid == 0])
+# NOTE: this dataset has no out-of-time/production sample -- `fit` and `valid`
+# are two random splits of the SAME application_train.csv population, so this
+# PSI is a train-vs-valid split-stability sanity check, not a true population
+# stability test. It will be near-zero by construction and should not be read
+# as evidence of validated production stability.
 psi_score = psi(fit_scores_raw, model.predict_proba(X_valid)[:, 1])
 
 print("\n" + "-" * 50)

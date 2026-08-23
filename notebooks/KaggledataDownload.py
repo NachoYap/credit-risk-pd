@@ -4,7 +4,7 @@ import kagglehub
 from pathlib import Path
 
 # Set the path to the file you'd like to load
-file_path = Path(Path.cwd().parent / "data/data_raw")
+file_path = Path(__file__).resolve().parent.parent / "data" / "data_raw"
 file_path.mkdir(parents=True, exist_ok=True)
 
 # Download the latest version (kagglehub caches it under its own directory

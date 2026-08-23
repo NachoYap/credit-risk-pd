@@ -185,8 +185,9 @@ pb_df["abs_corr"] = pb_df["correlation"].abs()
 top_num = pb_df.sort_values("abs_corr", ascending=False).head(20)
 
 fig, ax = plt.subplots(figsize=(10, 8))
-colors_bar = ["#F44336" if v < 0 else "#2196F3" for v in top_num["correlation"]]
-top_num["correlation"].sort_values().plot.barh(ax=ax, color=colors_bar[::-1])
+plotted_corr = top_num["correlation"].sort_values()
+colors_bar = ["#F44336" if v < 0 else "#2196F3" for v in plotted_corr]
+plotted_corr.plot.barh(ax=ax, color=colors_bar)
 ax.axvline(0, color="black", linewidth=0.8)
 ax.set_title("Top 20 Numerical Features — Point-Biserial Correlation with TARGET",
              fontweight="bold")
@@ -214,7 +215,7 @@ for c in cat_cols:
     if ct.shape[0] > 1:
         chi2, p, dof, _ = chi2_contingency(ct)
         chi2_results[c] = {"chi2": chi2, "p_value": p, "dof": dof,
-                           "cramers_v": np.sqrt(chi2 / (len(app) * (min(ct.shape) - 1)))}
+                           "cramers_v": np.sqrt(chi2 / (ct.values.sum() * (min(ct.shape) - 1)))}
 
 chi2_df = pd.DataFrame(chi2_results).T.sort_values("cramers_v", ascending=False)
 print("\n  Top categorical predictors (Cramer's V):")
@@ -579,19 +580,22 @@ print(f"  bureau_balance shape: {bb.shape}")
 
 # Aggregate bureau_balance to bureau level
 # Worst ever DPD status per credit
-bb_status_map = {"C": 0, "X": -1, "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5}
+# "X" (status unknown that month) deliberately left unmapped (-> NaN), not
+# folded into "C" (confirmed closed, clean) -- see src/features.py's
+# BUREAU_BALANCE_STATUS_RANK for the same fix applied to the modelling pipeline.
+bb_status_map = {"C": 0, "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5}
 bb["STATUS_NUM"] = bb["STATUS"].map(bb_status_map)
-bb_agg = bb.groupby("SK_BUREAU_ID").agg(
+bb_agg = bb.groupby("SK_ID_BUREAU").agg(
     max_dpd_status=("STATUS_NUM", "max"),
     n_months      =("MONTHS_BALANCE", "count"),
     n_dpd_months  =("STATUS_NUM", lambda x: (x > 0).sum())
 ).reset_index()
 
-bureau = bureau.merge(bb_agg, on="SK_BUREAU_ID", how="left")
+bureau = bureau.merge(bb_agg, on="SK_ID_BUREAU", how="left")
 
 # Aggregate bureau to application level
 bureau_app = bureau.groupby("SK_ID_CURR").agg(
-    bureau_n_credits      =("SK_BUREAU_ID", "count"),
+    bureau_n_credits      =("SK_ID_BUREAU", "count"),
     bureau_n_active       =("CREDIT_ACTIVE", lambda x: (x == "Active").sum()),
     bureau_n_closed       =("CREDIT_ACTIVE", lambda x: (x == "Closed").sum()),
     bureau_max_overdue    =("AMT_CREDIT_MAX_OVERDUE", "max"),

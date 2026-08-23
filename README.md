@@ -22,7 +22,10 @@ Both `03` and `04` depend on `02`'s output but are independent of each other.
 **Two trained, calibrated models** (committed under `models/`), evaluated on
 an internal 80/20 train/valid split carved out of `application_train.csv`
 (Kaggle's `application_test.csv` has no `TARGET`, so it's feature-engineered
-but never used for metrics):
+but never used for metrics). **The table below is STALE** — a round of bug
+fixes (see `CLAUDE.md`'s "Known gotchas") landed after these numbers were
+generated and the pipeline hasn't been rerun since; treat these as
+placeholders until `02`→`03`→`04` is rerun:
 
 | Metric | LR (WoE baseline) | XGBoost (challenger) |
 |---|---|---|
@@ -56,6 +59,12 @@ features to both models — none are EDA-only:
 
 ## Pending
 
+- **Rerun `02` → `03` → `04` → `05`** to regenerate models/metrics/submissions
+  reflecting this session's bug fixes — not yet done (see the metrics table's
+  staleness note above and `CLAUDE.md`'s "Known gotchas").
+- **`notebooks/01_eda_credit_risk.ipynb`** has independently diverged from the
+  `.py` version and still has bugs the `.py` had this session (e.g. a bureau
+  merge-key typo) fixed — not reconciled, see `CLAUDE.md`.
 - **No hyperparameter search for XGBoost** — currently fixed defaults
   (depth=4, lr=0.05), only `n_estimators` is tuned via early stopping.
   LightGBM is installed but untried as a second challenger.

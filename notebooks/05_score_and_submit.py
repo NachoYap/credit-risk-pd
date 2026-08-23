@@ -18,6 +18,7 @@ import argparse
 import pickle
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,6 +28,10 @@ SUBMISSION_DIR = ROOT / "submissions"
 
 ID_COL = "SK_ID_CURR"
 TARGET = "TARGET"
+# Isotonic calibration's lowest step can land exactly on 0.0 -- log(PD/(1-PD))
+# and PD x LGD x EAD both break on an exact 0, so floor the calibrated output
+# away from the boundary.
+PD_FLOOR = 1e-4
 
 
 def score_xgboost() -> pd.DataFrame:
@@ -35,6 +40,7 @@ def score_xgboost() -> pd.DataFrame:
         artifact = pickle.load(f)
     feature_cols = artifact["feature_cols"]
     pd_scores = artifact["calibrated"].predict_proba(test[feature_cols])[:, 1]
+    pd_scores = np.clip(pd_scores, PD_FLOOR, 1 - PD_FLOOR)
     return pd.DataFrame({ID_COL: test[ID_COL], TARGET: pd_scores})
 
 
@@ -43,7 +49,15 @@ def score_logistic() -> pd.DataFrame:
     with open(MODEL_DIR / "baseline_logistic_woe.pkl", "rb") as f:
         artifact = pickle.load(f)
     feature_cols = artifact["feature_cols"]
-    pd_scores = artifact["calibrated"].predict_proba(test[feature_cols])[:, 1]
+    # sc.woebin_ply() silently returns NaN for any category value it never
+    # saw while fitting bins on train (confirmed: currently 0 NaN in this
+    # repo's own test_woe.parquet, but a future batch with a genuinely new
+    # category would otherwise crash predict_proba with "Input X contains
+    # NaN"). 0 = population-average log-odds contribution in WoE encoding, a
+    # safe default for a code path we can't currently exercise against real data.
+    X = test[feature_cols].fillna(0)
+    pd_scores = artifact["calibrated"].predict_proba(X)[:, 1]
+    pd_scores = np.clip(pd_scores, PD_FLOOR, 1 - PD_FLOOR)
     return pd.DataFrame({ID_COL: test[ID_COL], TARGET: pd_scores})
 
 

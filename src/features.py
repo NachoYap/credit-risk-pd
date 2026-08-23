@@ -40,7 +40,12 @@ def clean_application(app: pd.DataFrame) -> pd.DataFrame:
 def aggregate_bureau_balance(bb: pd.DataFrame) -> pd.DataFrame:
     bb = bb.copy()
     bb["STATUS_RANK"] = bb["STATUS"].map(BUREAU_BALANCE_STATUS_RANK)
-    bb["IS_DPD"] = (bb["STATUS_RANK"] > 0).astype(int)
+    # Keep "X" (unknown status) as NaN here too, not 0 -- (NaN > 0) silently
+    # evaluates to False, which would conflate "unknown" with "confirmed not
+    # delinquent" in bb_dpd_rate, the same conflation already fixed for the
+    # rank columns below.
+    bb["IS_DPD"] = (bb["STATUS_RANK"] > 0).astype(float)
+    bb.loc[bb["STATUS_RANK"].isna(), "IS_DPD"] = np.nan
 
     agg = bb.groupby("SK_ID_BUREAU").agg(
         bb_months_count=("MONTHS_BALANCE", "count"),
@@ -119,8 +124,12 @@ def aggregate_pos_cash(pos: pd.DataFrame) -> pd.DataFrame:
 def aggregate_installments(inst: pd.DataFrame) -> pd.DataFrame:
     inst = inst.copy()
     inst["DAYS_LATE"] = (inst["DAYS_ENTRY_PAYMENT"] - inst["DAYS_INSTALMENT"]).clip(lower=0)
-    inst["LATE_FLAG"] = (inst["DAYS_LATE"] > 0).astype(int)
-    inst["PAYMENT_SHORTFALL"] = (inst["AMT_INSTALMENT"] - inst["AMT_PAYMENT"]).clip(lower=0)
+    # An installment that was never paid (no DAYS_ENTRY_PAYMENT/AMT_PAYMENT
+    # record at all) is the worst-case outcome, not "on time" -- NaN > 0 is
+    # False, so without the explicit isna() check these rows would silently
+    # read as clean payments instead of the strongest delinquency signal.
+    inst["LATE_FLAG"] = ((inst["DAYS_LATE"] > 0) | inst["DAYS_ENTRY_PAYMENT"].isna()).astype(int)
+    inst["PAYMENT_SHORTFALL"] = (inst["AMT_INSTALMENT"] - inst["AMT_PAYMENT"].fillna(0)).clip(lower=0)
 
     lifetime = inst.groupby("SK_ID_CURR").agg(
         inst_n_payments=("NUM_INSTALMENT_NUMBER", "count"),
