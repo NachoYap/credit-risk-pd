@@ -1,0 +1,14 @@
+{
+  "auc":0.7775152856,
+  "gini":0.5550305711,
+  "ks":0.4171719921,
+  "psi":0.0002539545,
+  "best_iteration":265.0,
+  "num_leaves":31.0,
+  "learning_rate":0.05,
+  "subsample":0.7,
+  "colsample_bytree":0.6,
+  "min_child_samples":10.0,
+  "reg_alpha":1.0,
+  "reg_lambda":3.0
+}

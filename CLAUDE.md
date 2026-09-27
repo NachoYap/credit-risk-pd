@@ -12,7 +12,8 @@ notebooks/
   03_baseline_logistic_regression.py   WoE + LR scorecard (baseline)
   04_gradient_boosting_shap.py         XGBoost + SHAP (challenger)
   05_score_and_submit.py               Scores test_features/test_woe with a trained model, writes Kaggle submission CSV
-  figures/                       All output plots, numbered sequentially across scripts (next free: 29)
+  06_lightgbm_challenger.py            LightGBM + SHAP (second challenger)
+  figures/                       All output plots, numbered sequentially across scripts (next free: 32)
 submissions/                    Kaggle submission CSVs from 05 — gitignored, regenerate via 05
 src/features.py                  Reusable aggregation functions (bureau, prev_app, POS, installments, cc)
 data/data_raw/                   Raw Kaggle CSVs — gitignored, not reproducible from code, ~2.5GB
@@ -22,7 +23,7 @@ models/artifacts/                Fitted WoE bins, outlier caps, feature column l
 .claude/skills/credit-risk-modelling/   PD/LGD/EAD methodology reference skill
 ```
 
-Run order: `01` → `02` → `03` and/or `04` (03/04 both depend on 02's output, independent of each other).
+Run order: `01` → `02` → `03` and/or `04` and/or `06` (03/04/06 all depend on 02's output, independent of each other).
 
 ## Environment
 
@@ -133,6 +134,36 @@ further dependency changes so this repo stops touching unrelated projects.
   column has missing values, understating every Cramer's V. Fixed to
   `ct.values.sum()`, the actual number of observations in the contingency
   table. All fixed — but the `.ipynb` twin was not, see Pending below.
+- LightGBM's `monotone_constraints_method` defaults to `'basic'`, a weaker
+  enforcement than XGBoost's exact-split method under `tree_method="hist"` —
+  raised as a concern during review since `06` reuses `04`'s direction map
+  without re-verifying enforcement per engine. Checked directly: computed
+  per-decile mean predicted PD (calibrated) on `valid` for all 16
+  constrained features against both models. 13/16 are perfectly monotonic
+  (zero adjacent-decile violations, |Spearman| = 1.0) or near-perfect
+  (`AGE_YEARS`/`YEARS_EMPLOYED`, 1 violation each, |Spearman| > 0.96).
+  `ANNUITY_INCOME_RATIO`, `bureau_worst_status_rank`, `cc_dpd_rate` show a few
+  violations in LightGBM -- but XGBoost's exact-enforcement model shows the
+  *identical* violation pattern on the same deciles, proving these aren't an
+  enforcement gap: `bureau_worst_status_rank` (7 unique values) and
+  `cc_dpd_rate` (80% exactly 0) collapse `pd.qcut` into 2-3 coarse groups
+  rather than true deciles, and decile bad-rate is a multivariate-confounded
+  marginal view, not a real single-feature partial dependence (same caveat
+  already applied to `CREDIT_INCOME_RATIO`'s hump shape). No code change
+  needed -- `'basic'` is not underperforming XGBoost's method here.
+- LightGBM's `.fit(..., eval_metric="auc")` does not replace the default
+  `binary_logloss` eval metric, it adds to it — both get tracked per boosting
+  round. `lgb.early_stopping(rounds)` without `first_metric_only=True` requires
+  *every* tracked metric to improve to reset its patience counter, not just the
+  one you asked for. `06_lightgbm_challenger.py`'s `scale_pos_weight=11.4`
+  skews predicted probabilities enough that `binary_logloss` gets worse almost
+  every round even while `auc` (the metric that actually matters here) keeps
+  climbing past 0.77 — without `first_metric_only=True`, every hyperparameter
+  trial's early stopping fired at iteration 1, producing a valid AUC of 0.729
+  (worse than the LR baseline) that looked like a real result until the
+  per-round AUC trajectory was traced with and without `scale_pos_weight` to
+  confirm the trees were only ever getting 1-2 rounds to fit. Fixed by passing
+  `first_metric_only=True` to every `lgb.early_stopping()` call in that file.
 - `notebooks/KaggledataDownload.py` had two separate bugs: it called
   `kagglehub.dataset_download(..., output_dir=...)`, a kwarg the installed
   `kagglehub==0.3.5` doesn't have (fixed by downloading to kagglehub's own
@@ -168,10 +199,10 @@ further dependency changes so this repo stops touching unrelated projects.
   (credit_card) all reach the trained models.
 - Outlier caps and WoE bins are fit on the train split only, then applied to
   valid/test — this is deliberate, don't "simplify" by fitting on the full data.
-- Both models use `class_weight='balanced'` / `scale_pos_weight` during fitting,
-  then isotonic recalibration on a held-out calibration fold to correct
-  predicted PD back to the true ~8% base rate. Raw `predict_proba` from either
-  model is not a usable PD without this step.
+- All three models use `class_weight='balanced'` / `scale_pos_weight` during
+  fitting, then isotonic recalibration on a held-out calibration fold to
+  correct predicted PD back to the true ~8% base rate. Raw `predict_proba`
+  from any of them is not a usable PD without this step.
 
 ## Current results (internal valid split)
 
@@ -179,24 +210,33 @@ Rerun on 2026-08-23: first after the second-pass bug fixes (`bb_dpd_rate`'s
 incomplete NaN fix, unpaid-installment coding, the `CREDIT_INCOME_RATIO`
 monotone constraint, scorecard odds anchoring, PD flooring; commit `cdc22ec`),
 then again after adding an XGBoost hyperparameter search (commit below).
+LightGBM added as a second challenger on 2026-09-27.
 
-| Metric | LR (WoE baseline) | XGBoost (challenger) |
-|---|---|---|
-| AUC  | 0.7651 | 0.7791 |
-| Gini | 0.5302 | 0.5581 |
-| KS   | 0.3997 | 0.4178 |
-| PSI  | 0.0002 | 0.0002 |
+| Metric | LR (WoE baseline) | XGBoost (challenger) | LightGBM (2nd challenger) |
+|---|---|---|---|
+| AUC  | 0.7651 | 0.7791 | 0.7775 |
+| Gini | 0.5302 | 0.5581 | 0.5550 |
+| KS   | 0.3997 | 0.4178 | 0.4172 |
+| PSI  | 0.0002 | 0.0002 | 0.0003 |
 
-Both calibrated (predicted PD: LR 7.98%, XGBoost 8.02%, vs true 8.07%).
-XGBoost's tuned hyperparameters (see "Hyperparameter search" below):
-`max_depth=4, learning_rate=0.08, subsample=0.9, colsample_bytree=0.6,
-min_child_weight=10, gamma=1.0, reg_alpha=0, reg_lambda=1.5`. Top SHAP
-drivers: `EXT_MEAN` (dominant), `CREDIT_TERM`, `GOODS_CREDIT_RATIO`,
-`inst_late_rate_last6`, `EXT_MAX`, `ORGANIZATION_TYPE`,
-`bureau_debt_credit_ratio`. Kaggle submissions regenerated at
-`submissions/submission_xgboost.csv` (mean PD 7.51%) and
-`submissions/submission_logistic.csv` (mean PD 8.12%; LR is unaffected by the
-XGBoost search, so its submission is unchanged from the bug-fix rerun).
+All three calibrated (predicted PD: LR 7.98%, XGBoost 8.02%, LightGBM 8.01%,
+vs true 8.07%). XGBoost's tuned hyperparameters (see "Hyperparameter search"
+below): `max_depth=4, learning_rate=0.08, subsample=0.9, colsample_bytree=0.6,
+min_child_weight=10, gamma=1.0, reg_alpha=0, reg_lambda=1.5`. LightGBM's:
+`num_leaves=31, learning_rate=0.05, subsample=0.7, colsample_bytree=0.6,
+min_child_samples=10, reg_alpha=1.0, reg_lambda=3.0` (best iteration 265/500).
+XGBoost remains the stronger model by a small margin (+0.0016 AUC) but the two
+are close enough that either would be a reasonable production challenger.
+XGBoost top SHAP drivers: `EXT_MEAN` (dominant), `CREDIT_TERM`,
+`GOODS_CREDIT_RATIO`, `inst_late_rate_last6`, `EXT_MAX`, `ORGANIZATION_TYPE`,
+`bureau_debt_credit_ratio`. LightGBM top SHAP drivers: `EXT_MEAN` (dominant,
+by a wider margin than in XGBoost), `ORGANIZATION_TYPE`, `GOODS_CREDIT_RATIO`,
+`CREDIT_TERM`, `inst_late_rate_last6` — largely the same feature set as
+XGBoost, reordered. Kaggle submissions regenerated at
+`submissions/submission_xgboost.csv` (mean PD 7.51%),
+`submissions/submission_lightgbm.csv` (mean PD 7.51%), and
+`submissions/submission_logistic.csv` (mean PD 8.12%; LR is unaffected by
+either GBM's search, so its submission is unchanged from the bug-fix rerun).
 
 ## Hyperparameter search (XGBoost)
 
@@ -216,6 +256,20 @@ winner is also folded into `models/gbm_metrics.json` and
 `models/gbm_xgboost.pkl`'s `hyperparams` key. Took ~15.5 min for the search
 alone (932s) on top of the final fit/calibration/SHAP steps.
 
+`06_lightgbm_challenger.py` runs the same 25-candidate random search
+(`ParameterSampler`, `random_state=42`) over `num_leaves`, `learning_rate`,
+`subsample`, `colsample_bytree`, `min_child_samples`, `reg_alpha`,
+`reg_lambda` on the same ES fold, ranked by ES-fold AUC, same
+300/20-during-search vs 500/30-for-the-final-fit split as XGBoost.
+`subsample_freq` is fixed at 1 (not searched) — LightGBM's `subsample`
+(bagging fraction) is silently ignored unless `subsample_freq` > 0. Every
+`lgb.early_stopping()` call needs `first_metric_only=True` (see the gotcha
+above) or the search silently collapses to 1-round fits. Results saved to
+`models/artifacts/lgbm_hparam_search.json`; the winner is folded into
+`models/lgbm_metrics.json` and `models/lgbm_lightgbm.pkl`'s `hyperparams` key.
+Search + final fit + SHAP together took ~6 min (much faster than XGBoost's
+~15.5 min search alone, at nearly the same final AUC).
+
 ## Pending / next steps
 
 - `notebooks/01_eda_credit_risk.ipynb` has independently diverged from the
@@ -224,7 +278,6 @@ alone (932s) on top of the final fit/calibration/SHAP steps.
   `.py` this session — not reconciled, since `.py` is the documented entry
   point and the notebook is large enough that Read/NotebookEdit tooling
   couldn't load it in one pass.
-- LightGBM is installed but untried as a second challenger.
 - LGD and EAD models not started (skill references exist at
   `.claude/skills/credit-risk-modelling/references/{lgd,ead}.md`).
 - `app/`, `tests/` are empty scaffolding — no serving layer or unit tests exist,

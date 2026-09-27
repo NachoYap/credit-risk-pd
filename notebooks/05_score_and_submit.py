@@ -6,11 +6,12 @@ application_test.csv, which has no TARGET and was never used for metrics) and
 a trained + calibrated model, scores every applicant's PD, and writes a
 submission CSV in the SK_ID_CURR,TARGET format Kaggle expects.
 
-Scoring mirrors exactly how 03/04 score their `valid` split — no new
+Scoring mirrors exactly how 03/04/06 score their `valid` split — no new
 calibration logic here, just predict_proba on the calibrated model.
 
 Run with:
     python notebooks/05_score_and_submit.py --model xgboost
+    python notebooks/05_score_and_submit.py --model lightgbm
     python notebooks/05_score_and_submit.py --model logistic
 """
 
@@ -44,6 +45,16 @@ def score_xgboost() -> pd.DataFrame:
     return pd.DataFrame({ID_COL: test[ID_COL], TARGET: pd_scores})
 
 
+def score_lightgbm() -> pd.DataFrame:
+    test = pd.read_parquet(DATA_DIR / "test_features.parquet")
+    with open(MODEL_DIR / "lgbm_lightgbm.pkl", "rb") as f:
+        artifact = pickle.load(f)
+    feature_cols = artifact["feature_cols"]
+    pd_scores = artifact["calibrated"].predict_proba(test[feature_cols])[:, 1]
+    pd_scores = np.clip(pd_scores, PD_FLOOR, 1 - PD_FLOOR)
+    return pd.DataFrame({ID_COL: test[ID_COL], TARGET: pd_scores})
+
+
 def score_logistic() -> pd.DataFrame:
     test = pd.read_parquet(DATA_DIR / "test_woe.parquet")
     with open(MODEL_DIR / "baseline_logistic_woe.pkl", "rb") as f:
@@ -61,7 +72,7 @@ def score_logistic() -> pd.DataFrame:
     return pd.DataFrame({ID_COL: test[ID_COL], TARGET: pd_scores})
 
 
-SCORERS = {"xgboost": score_xgboost, "logistic": score_logistic}
+SCORERS = {"xgboost": score_xgboost, "lightgbm": score_lightgbm, "logistic": score_logistic}
 
 
 def main():
